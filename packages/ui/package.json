@@ -1,8 +1,8 @@
 {
   "name": "@vitest/ui",
   "type": "module",
-  "version": "0.34.2",
-  "description": "UI for Vitest",
+  "version": "0.34.2-hash2",
+  "description": "UI for Vitest- hash版本",
   "license": "MIT",
   "funding": "https://opencollective.com/vitest",
   "homepage": "https://github.com/vitest-dev/vitest/tree/main/packages/ui#readme",
@@ -63,6 +63,7 @@
     "@types/d3-selection": "^3.0.5",
     "@types/ws": "^8.5.5",
     "@unocss/reset": "^0.53.4",
+    "@vitejs/plugin-legacy": "^4.1.1",
     "@vitejs/plugin-vue": "^4.2.3",
     "@vitejs/plugin-vue-jsx": "^3.0.1",
     "@vitest/runner": "workspace:*",

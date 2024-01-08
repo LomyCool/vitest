@@ -1,10 +1,12 @@
 import type { BirpcReturn } from 'birpc'
 import type { VitestClient } from '@vitest/ws-client'
 import type { WebSocketHandlers } from 'vitest/src/api/types'
-import { parse } from 'flatted'
+import { parse, stringify } from 'flatted'
 import { decompressSync, strFromU8 } from 'fflate'
 import type { File, ModuleGraphData, ResolvedConfig } from 'vitest/src/types'
 import { StateManager } from '../../../../vitest/src/node/state'
+
+
 
 interface HTMLReportMetadata {
   paths: string[]
@@ -13,7 +15,7 @@ interface HTMLReportMetadata {
   moduleGraph: Record<string, ModuleGraphData>
 }
 
-const noop: any = () => {}
+const noop: any = () => { }
 const asyncNoop: any = () => Promise.resolve()
 
 export function createStaticClient(): VitestClient {
@@ -77,18 +79,27 @@ export function createStaticClient(): VitestClient {
   }
 
   async function registerMetadata() {
+    // await Promise.resolve()
+    // metadata = window.METADATA && parse(JSON.stringify(window.METADATA)) as HTMLReportMetadata
+    // console.log("🚀 ~ file: static.ts:81 ~ registerMetadata ~ metadata:", metadata)
     const res = await fetch(window.METADATA_PATH!)
     const contentType = res.headers.get('content-type')?.toLowerCase() || ''
-    if (contentType.includes('application/gzip') || contentType.includes('application/x-gzip')) {
+
+    if (contentType.includes('application/gzip') || contentType.includes('application/x-gzip') || contentType.includes('application/octet-stream')) {
       const compressed = new Uint8Array(await res.arrayBuffer())
       const decompressed = strFromU8(decompressSync(compressed))
       metadata = parse(decompressed) as HTMLReportMetadata
     }
     else {
-      metadata = parse(await res.text()) as HTMLReportMetadata
+      const text = await res.text()
+      console.log("🚀 ~ file: static.ts:93 ~ registerMetadata ~ text:", text)
+      metadata = parse(text) as HTMLReportMetadata
+      console.log("🚀 ~ file: static.ts:89 ~ registerMetadata ~ metadata:", metadata)
     }
+
     const event = new Event('open')
     ctx.ws.dispatchEvent(event)
+    window.METADATA = metadata
   }
 
   registerMetadata()

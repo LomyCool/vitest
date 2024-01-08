@@ -74,6 +74,8 @@ watch(
         client.rpc.getFiles(),
         client.rpc.getConfig(),
       ])
+      console.log("🚀 ~ file: index.ts:77 ~ ws.addEventListener ~ files:", files)
+      console.log("🚀 ~ file: index.ts:74 ~ ws.addEventListener ~ _config:", _config)
       client.state.collectFiles(files)
       config.value = _config
     })

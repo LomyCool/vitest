@@ -11,8 +11,8 @@ import { presetAttributify, presetIcons, presetUno } from 'unocss'
 // for debug:
 // open a static file serve to share the report json
 // and ui using the link to load the report json data
-const debugLink = 'http://127.0.0.1:4173/__vitest__'
-
+// const debugLink = 'http://127.0.0.1:4173/__vitest__'
+const debugLink = 'http://localhost:5173'
 export const config: UserConfig = {
   root: __dirname,
   base: './',
@@ -80,6 +80,8 @@ export const config: UserConfig = {
   ],
   build: {
     outDir: './dist/client',
+    target: 'es2015',
+
   },
   optimizeDeps: {
     include: [
