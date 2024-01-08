@@ -19,6 +19,8 @@ interface PrivateNodeModule extends NodeModule {
   _compile(code: string, filename: string): void
 }
 
+const requiresCache = new WeakMap<NodeModule, NodeRequire>()
+
 export class CommonjsExecutor {
   private context: vm.Context
   private requireCache = new Map<string, NodeModule>()
@@ -40,13 +42,12 @@ export class CommonjsExecutor {
       Error: typeof Error
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    // eslint-disable-next-line ts/no-this-alias
     const executor = this
 
     this.Module = class Module {
       exports: any
       isPreloading = false
-      require: NodeRequire
       id: string
       filename: string
       loaded: boolean
@@ -55,15 +56,24 @@ export class CommonjsExecutor {
       path: string
       paths: string[] = []
 
-      constructor(id: string, parent?: Module) {
+      constructor(id = '', parent?: Module) {
         this.exports = primitives.Object.create(Object.prototype)
-        this.require = Module.createRequire(id)
         // in our case the path should always be resolved already
         this.path = dirname(id)
         this.id = id
         this.filename = id
         this.loaded = false
         this.parent = parent
+      }
+
+      get require() {
+        const require = requiresCache.get(this)
+        if (require)
+          return require
+
+        const _require = Module.createRequire(this.id)
+        requiresCache.set(this, _require)
+        return _require
       }
 
       _compile(code: string, filename: string) {
@@ -129,8 +139,6 @@ export class CommonjsExecutor {
       static _resolveLookupPaths = _Module._resolveLookupPaths
       // @ts-expect-error not typed
       static globalPaths = _Module.globalPaths
-      // eslint-disable-next-line @typescript-eslint/prefer-ts-expect-error
-      // @ts-ignore not typed in lower versions
       static isBuiltin = _Module.isBuiltin
 
       static Module = Module

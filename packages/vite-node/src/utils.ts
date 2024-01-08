@@ -1,7 +1,7 @@
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { builtinModules } from 'node:module'
-import { existsSync } from 'node:fs'
-import { dirname, resolve } from 'pathe'
+import { existsSync, promises as fsp } from 'node:fs'
+import { dirname, join, resolve } from 'pathe'
 import type { Arrayable, Nullable } from './types'
 
 export const isWindows = process.platform === 'win32'
@@ -22,7 +22,7 @@ export function slash(str: string) {
 export const VALID_ID_PREFIX = '/@id/'
 
 export function normalizeRequestId(id: string, base?: string): string {
-  if (base && id.startsWith(base))
+  if (base && id.startsWith(withTrailingSlash(base)))
     id = `/${id.slice(base.length)}`
 
   // keep drive the same as in process cwd
@@ -105,12 +105,12 @@ export function toFilePath(id: string, root: string): { path: string; exists: bo
     if (id.startsWith('/@fs/'))
       return { absolute: id.slice(4), exists: true }
     // check if /src/module.js -> <root>/src/module.js
-    if (!id.startsWith(root) && id.startsWith('/')) {
+    if (!id.startsWith(withTrailingSlash(root)) && id.startsWith('/')) {
       const resolved = resolve(root, id.slice(1))
       if (existsSync(cleanUrl(resolved)))
         return { absolute: resolved, exists: true }
     }
-    else if (id.startsWith(root) && existsSync(cleanUrl(id))) {
+    else if (id.startsWith(withTrailingSlash(root)) && existsSync(cleanUrl(id))) {
       return { absolute: id, exists: true }
     }
     return { absolute: id, exists: false }
@@ -200,6 +200,13 @@ function traverseBetweenDirs(
   }
 }
 
+export function withTrailingSlash(path: string): string {
+  if (path[path.length - 1] !== '/')
+    return `${path}/`
+
+  return path
+}
+
 export function createImportMetaEnvProxy() {
   // packages/vitest/src/node/plugins/index.ts:146
   const booleanKeys = [
@@ -227,4 +234,32 @@ export function createImportMetaEnvProxy() {
       return true
     },
   })
+}
+
+const packageCache = new Map<string, { type?: 'module' | 'commonjs' }>()
+
+export async function findNearestPackageData(basedir: string): Promise<{ type?: 'module' | 'commonjs' }> {
+  const originalBasedir = basedir
+  while (basedir) {
+    const cached = getCachedData(packageCache, basedir, originalBasedir)
+    if (cached)
+      return cached
+
+    const pkgPath = join(basedir, 'package.json')
+    if ((await fsp.stat(pkgPath).catch(() => {}))?.isFile()) {
+      const pkgData = JSON.parse(await fsp.readFile(pkgPath, 'utf8'))
+
+      if (packageCache)
+        setCacheData(packageCache, pkgData, basedir, originalBasedir)
+
+      return pkgData
+    }
+
+    const nextBasedir = dirname(basedir)
+    if (nextBasedir === basedir)
+      break
+    basedir = nextBasedir
+  }
+
+  return {}
 }

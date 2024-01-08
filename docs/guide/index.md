@@ -6,7 +6,7 @@ title: Getting Started | Guide
 
 ## Overview
 
-Vitest is a blazing fast unit test framework powered by Vite.
+Vitest is a next generation testing framework powered by Vite.
 
 You can learn more about the rationale behind the project in the [Why Vitest](./why) section.
 
@@ -14,24 +14,27 @@ You can learn more about the rationale behind the project in the [Why Vitest](./
 
 You can try Vitest online on [StackBlitz](https://vitest.new). It runs Vitest directly in the browser, and it is almost identical to the local setup but doesn't require installing anything on your machine.
 
-## Adding Vitest to your Project
+## Adding Vitest to Your Project
 
 <CourseLink href="https://vueschool.io/lessons/how-to-install-vitest?friend=vueuse">Learn how to install by Video</CourseLink>
 
 ::: code-group
-  ```bash [npm]
-  npm install -D vitest
-  ```
-  ```bash [yarn]
-  yarn add -D vitest
-  ```
-  ```bash [pnpm]
-  pnpm add -D vitest
-  ```
+```bash [npm]
+npm install -D vitest
+```
+```bash [yarn]
+yarn add -D vitest
+```
+```bash [pnpm]
+pnpm add -D vitest
+```
+```bash [bun]
+bun add -D vitest
+```
 :::
 
 :::tip
-Vitest requires Vite >=v3.0.0 and Node >=v14.18
+Vitest 1.0 requires Vite >=v5.0.0 and Node >=v18.00
 :::
 
 It is recommended that you install a copy of `vitest` in your `package.json`, using one of the methods listed above. However, if you would prefer to run `vitest` directly, you can use `npx vitest` (the `npx` command comes with npm and Node.js).
@@ -71,7 +74,7 @@ Next, in order to execute the test, add the following section to your `package.j
 
 Finally, run `npm run test`, `yarn test`, or `pnpm test`, depending on your package manager, and Vitest will print this message:
 
-```log
+```txt
 ✓ sum.test.js (1)
   ✓ adds 1 + 2 to equal 3
 
@@ -111,7 +114,7 @@ Even if you do not use Vite yourself, Vitest relies heavily on it for its transf
 
 If you are already using Vite, add `test` property in your Vite config. You'll also need to add a reference to Vitest types using a [triple slash directive](https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html#-reference-types-) at the top of your config file.
 
-```ts 
+```ts
 /// <reference types="vitest" />
 import { defineConfig } from 'vite'
 

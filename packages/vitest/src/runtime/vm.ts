@@ -7,9 +7,9 @@ import { createBirpc } from 'birpc'
 import { resolve } from 'pathe'
 import { installSourcemapsSupport } from 'vite-node/source-map'
 import type { CancelReason } from '@vitest/runner'
-import type { RuntimeRPC, WorkerContext, WorkerGlobalState } from '../types'
+import type { RunnerRPC, RuntimeRPC, WorkerContext, WorkerGlobalState } from '../types'
 import { distDir } from '../paths'
-import { loadEnvironment } from '../integrations/env'
+import { loadEnvironment } from '../integrations/env/loader'
 import { startVitestExecutor } from './execute'
 import { createCustomConsole } from './console'
 import { createSafeRpc } from './rpc'
@@ -19,14 +19,14 @@ const entryFile = pathToFileURL(resolve(distDir, 'entry-vm.js')).href
 export async function run(ctx: WorkerContext) {
   const moduleCache = new ModuleCacheMap()
   const mockMap = new Map()
-  const { config, port } = ctx
+  const { config, port, providedContext } = ctx
 
   let setCancel = (_reason: CancelReason) => {}
   const onCancel = new Promise<CancelReason>((resolve) => {
     setCancel = resolve
   })
 
-  const rpc = createBirpc<RuntimeRPC>(
+  const rpc = createSafeRpc(createBirpc<RuntimeRPC, RunnerRPC>(
     {
       onCancel: setCancel,
     },
@@ -35,9 +35,13 @@ export async function run(ctx: WorkerContext) {
       post(v) { port.postMessage(v) },
       on(fn) { port.addListener('message', fn) },
     },
-  )
+  ))
 
-  const environment = await loadEnvironment(ctx.environment.name, ctx.config.root)
+  const environment = await loadEnvironment(ctx.environment.name, {
+    root: ctx.config.root,
+    fetchModule: id => rpc.fetch(id, 'ssr'),
+    resolveId: (id, importer) => rpc.resolveId(id, importer, 'ssr'),
+  })
 
   if (!environment.setupVM) {
     const envName = ctx.environment.name
@@ -59,7 +63,8 @@ export async function run(ctx: WorkerContext) {
       environment: performance.now(),
       prepare: performance.now(),
     },
-    rpc: createSafeRpc(rpc),
+    rpc,
+    providedContext,
   }
 
   installSourcemapsSupport({
@@ -82,7 +87,12 @@ export async function run(ctx: WorkerContext) {
   if (!isContext(context))
     throw new TypeError(`Environment ${ctx.environment.name} doesn't provide a valid context. It should be created by "vm.createContext" method.`)
 
-  context.__vitest_worker__ = state
+  Object.defineProperty(context, '__vitest_worker__', {
+    value: state,
+    configurable: true,
+    writable: true,
+    enumerable: false,
+  })
   // this is unfortunately needed for our own dependencies
   // we need to find a way to not rely on this by default
   // because browser doesn't provide these globals

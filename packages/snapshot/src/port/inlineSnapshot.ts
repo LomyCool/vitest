@@ -1,5 +1,5 @@
 import type MagicString from 'magic-string'
-import { getCallLastIndex, lineSplitRE, offsetToLineNumber, positionToOffset } from '@vitest/utils'
+import { getCallLastIndex, lineSplitRE, offsetToLineNumber, positionToOffset } from '../../../utils/src/index'
 import type { SnapshotEnvironment } from '../types'
 
 export interface InlineSnapshot {
@@ -87,21 +87,25 @@ function prepareSnapString(snap: string, source: string, index: number) {
     .split(/\n/g)
 
   const isOneline = lines.length <= 1
-  const quote = isOneline ? '\'' : '`'
+  const quote = '`'
   if (isOneline)
-    return `'${lines.join('\n').replace(/'/g, '\\\'')}'`
-  else
-    return `${quote}\n${lines.map(i => i ? indentNext + i : '').join('\n').replace(/`/g, '\\`').replace(/\${/g, '\\${')}\n${indent}${quote}`
+    return `${quote}${lines.join('\n').replace(/`/g, '\\`').replace(/\${/g, '\\${')}${quote}`
+  return `${quote}\n${lines.map(i => i ? indentNext + i : '').join('\n').replace(/`/g, '\\`').replace(/\${/g, '\\${')}\n${indent}${quote}`
 }
 
 const startRegex = /(?:toMatchInlineSnapshot|toThrowErrorMatchingInlineSnapshot)\s*\(\s*(?:\/\*[\S\s]*\*\/\s*|\/\/.*\s+)*\s*[\w_$]*(['"`\)])/m
 export function replaceInlineSnap(code: string, s: MagicString, index: number, newSnap: string) {
-  const startMatch = startRegex.exec(code.slice(index))
-  if (!startMatch)
+  const codeStartingAtIndex = code.slice(index)
+
+  const startMatch = startRegex.exec(codeStartingAtIndex)
+
+  const firstKeywordMatch = /toMatchInlineSnapshot|toThrowErrorMatchingInlineSnapshot/.exec(codeStartingAtIndex)
+
+  if (!startMatch || startMatch.index !== firstKeywordMatch?.index)
     return replaceObjectSnap(code, s, index, newSnap)
 
   const quote = startMatch[1]
-  const startIndex = index + startMatch.index! + startMatch[0].length
+  const startIndex = index + startMatch.index + startMatch[0].length
   const snapString = prepareSnapString(newSnap, code, index)
 
   if (quote === ')') {

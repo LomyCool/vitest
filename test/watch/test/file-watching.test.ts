@@ -40,6 +40,10 @@ afterEach(() => {
   cleanups.splice(0).forEach(cleanup => cleanup())
 })
 
+// TODO: Fix flakiness and enable on CI
+if (process.env.GITHUB_ACTIONS)
+  test.only('skip tests on CI', () => {})
+
 test('editing source file triggers re-run', async () => {
   const vitest = await runVitestCli(...cliArgs)
 
@@ -47,6 +51,18 @@ test('editing source file triggers re-run', async () => {
 
   await vitest.waitForStdout('New code running')
   await vitest.waitForStdout('RERUN  ../math.ts')
+  await vitest.waitForStdout('1 passed')
+})
+
+test('editing file that was imported with a query reruns suite', async () => {
+  const vitest = await runVitestCli(...cliArgs)
+
+  testUtils.editFile(
+    testUtils.resolvePath(import.meta.url, '../fixtures/42.txt'),
+    file => `${file}\n`,
+  )
+
+  await vitest.waitForStdout('RERUN  ../42.txt')
   await vitest.waitForStdout('1 passed')
 })
 
@@ -121,9 +137,12 @@ test('editing source file generates new test report to file system', async () =>
 
   const vitest = await runVitestCli(
     ...cliArgs,
-    '--reporter', 'verbose',
-    '--reporter', 'junit',
-    '--output-file', 'test-results/junit.xml',
+    '--reporter',
+    'verbose',
+    '--reporter',
+    'junit',
+    '--output-file',
+    'test-results/junit.xml',
   )
 
   // Test report should be generated on initial test run

@@ -7,6 +7,9 @@ const dir = dirname(fileURLToPath(import.meta.url))
 function noop() {}
 
 export default defineConfig({
+  optimizeDeps: {
+    include: ['@vitest/cjs-lib'],
+  },
   test: {
     include: ['test/**.test.{ts,js}'],
     browser: {
@@ -14,12 +17,14 @@ export default defineConfig({
       name: process.env.BROWSER || 'chrome',
       headless: false,
       provider: process.env.PROVIDER || 'webdriverio',
+      isolate: false,
+      slowHijackESM: true,
     },
     alias: {
       '#src': resolve(dir, './src'),
     },
     open: false,
-    isolate: false,
+    diff: './custom-diff-config.ts',
     outputFile: './browser.json',
     reporters: ['json', {
       onInit: noop,
